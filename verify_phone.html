@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Phone Verification</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Firebase (Modular SDK v9+) -->
+  <script type="module">
+    // Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+
+    // Firebase config
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhW3vyZ5xprD4jZEDMD2IfBVYNfFHWKoU",
+        authDomain: "adrian-e104a.firebaseapp.com",
+        projectId: "adrian-e104a",
+        storageBucket: "adrian-e104a.firebasestorage.app",
+        messagingSenderId: "672365348907",
+        appId: "1:672365348907:web:6ea235fd19c9617e0f426e"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    let recaptchaVerifier;
+    let confirmationResult;
+
+    window.sendOTP = () => {
+      const phoneNumber = document.getElementById("phone").value;
+      const recaptchaContainer = document.getElementById("recaptcha-container");
+
+      // Clear previous reCAPTCHA
+      if (recaptchaVerifier) {
+        recaptchaContainer.innerHTML = '';
+      }
+
+      recaptchaContainer.classList.remove("hidden");
+
+      recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+        'size': 'normal',
+        'callback': () => {
+          actuallySendOTP(phoneNumber);
+        },
+        'expired-callback': () => {
+          showMessage("reCAPTCHA expired. Try again.", "red");
+        }
+      }, auth);
+
+      recaptchaVerifier.render().then(widgetId => {
+        window.recaptchaWidgetId = widgetId;
+      });
+    };
+
+    function actuallySendOTP(phoneNumber) {
+      signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+        .then(result => {
+          confirmationResult = result;
+          showMessage("OTP sent successfully!", "green");
+        })
+        .catch(error => {
+          console.error("Error sending OTP:", error);
+          showMessage("Error: " + error.message, "red");
+        });
+    }
+
+    window.verifyOTP = () => {
+      const code = document.getElementById("otp").value;
+      confirmationResult.confirm(code)
+        .then(result => {
+          showMessage("Phone verified successfully!", "green");
+          console.log("User:", result.user);
+        })
+        .catch(error => {
+          showMessage("Verification failed: " + error.message, "red");
+        });
+    };
+
+    function showMessage(msg, color) {
+      const messageEl = document.getElementById("message");
+      messageEl.textContent = msg;
+      messageEl.className = `mt-4 text-center text-sm text-${color}-600`;
+    }
+  </script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+    <h2 class="text-2xl font-bold mb-4 text-center">Verify Phone Number</h2>
+
+    <label class="block text-gray-700 font-medium">Phone Number</label>
+    <input type="text" id="phone" placeholder="+234XXXXXXXXXX"
+           class="w-full mt-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+
+    <div id="recaptcha-container" class="mt-4 hidden"></div>
+
+    <button onclick="sendOTP()"
+            class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
+      Send OTP
+    </button>
+
+    <label class="block mt-6 text-gray-700 font-medium">Enter OTP</label>
+    <input type="text" id="otp"
+           class="w-full mt-1 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+
+    <button onclick="verifyOTP()"
+            class="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition">
+    <a href="http://localhost/fabric/checkout.php?session_id={CHECKOUT_SESSION_ID}"> Verify OTP</a> 
+    </button>
+
+    <p id="message" class="mt-4 text-center text-sm"></p>
+  </div>
+</body>
+</html>
